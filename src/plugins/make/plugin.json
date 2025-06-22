@@ -1,0 +1,33 @@
+{
+  "id": "make-integration",
+  "name": "Make.com Integration",
+  "version": "1.0.0",
+  "description": "Automate workflows using Make.com webhooks with flexible message parsing and multiple service support",
+  "author": "Operator Team",
+  "type": "automation",
+  "enabled": true,
+  "permissions": [
+    "send-messages",
+    "read-messages",
+    "access-webhooks"
+  ],
+  "hooks": [
+    "onMessageReceived",
+    "onReactionAdded",
+    "onRoomJoined"
+  ],
+  "settings": {
+    "defaultEnabled": true,
+    "requiresConfiguration": true,
+    "configurablePerRoom": true
+  },
+  "dependencies": [],
+  "supportedServices": [
+    "trello",
+    "gmail",
+    "google-sheets",
+    "slack",
+    "calendar",
+    "custom"
+  ]
+} 
