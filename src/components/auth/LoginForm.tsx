@@ -1,13 +1,28 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAtom } from "jotai";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authAtom, roomsAtom, messagesAtom } from "@/lib/store/atoms";
-import { createClient } from "matrix-js-sdk";
 import { AuthStateSchema, RoomSchema, MessageSchema } from "@/schemas";
+
+// Dynamic import for Matrix SDK to avoid SSR issues
+const createMatrixClient = async (config: {
+  baseUrl: string;
+  accessToken?: string;
+  userId?: string;
+  deviceId?: string;
+}) => {
+  if (typeof window === "undefined") {
+    throw new Error("Matrix client can only be created on client side");
+  }
+
+  const { createClient } = await import("matrix-js-sdk");
+  return createClient(config);
+};
 
 export function LoginForm() {
   const [auth, setAuth] = useAtom(authAtom);
@@ -21,7 +36,7 @@ export function LoginForm() {
     password: "",
   });
 
-  const handleDemoMode = () => {
+  const handleDemoMode = useCallback(() => {
     // Set up mock authentication
     const mockAuth = AuthStateSchema.parse({
       isAuthenticated: true,
@@ -81,6 +96,16 @@ export function LoginForm() {
         isEncrypted: true,
         memberCount: 2,
         unreadCount: 1,
+        highlightCount: 0,
+        tags: [],
+      }),
+      RoomSchema.parse({
+        id: "!bob:matrix.org",
+        name: "Bob Wilson",
+        isDirect: true,
+        isEncrypted: true,
+        memberCount: 2,
+        unreadCount: 0,
         highlightCount: 0,
         tags: [],
       }),
@@ -180,7 +205,7 @@ export function LoginForm() {
     setAuth(mockAuth);
     setRooms(mockRooms);
     setMessages(mockMessages);
-  };
+  }, [setAuth, setRooms, setMessages]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,7 +214,7 @@ export function LoginForm() {
 
     try {
       // Create temporary client for login
-      const tempClient = createClient({
+      const tempClient = await createMatrixClient({
         baseUrl: credentials.homeserver,
       });
 
@@ -226,7 +251,7 @@ export function LoginForm() {
     setError(null);
 
     try {
-      const tempClient = createClient({
+      const tempClient = await createMatrixClient({
         baseUrl: credentials.homeserver,
       });
 

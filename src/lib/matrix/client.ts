@@ -1,26 +1,44 @@
-import {
-  MatrixClient,
-  createClient,
-  ClientEvent,
-  RoomEvent,
-  RoomMemberEvent,
-  IContent,
-  ICreateRoomOpts,
-} from "matrix-js-sdk";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { AuthState } from "@/schemas";
+
+// Dynamic imports for Matrix SDK types and functions
+let MatrixClient: any;
+let createClient: any;
+let ClientEvent: any;
+let RoomEvent: any;
+let RoomMemberEvent: any;
+
+// Initialize Matrix SDK imports on client side only
+const initializeMatrixSDK = async () => {
+  if (typeof window === "undefined") {
+    throw new Error("Matrix SDK can only be initialized on client side");
+  }
+
+  if (!MatrixClient) {
+    const matrixSDK = await import("matrix-js-sdk");
+    MatrixClient = matrixSDK.MatrixClient;
+    createClient = matrixSDK.createClient;
+    ClientEvent = matrixSDK.ClientEvent;
+    RoomEvent = matrixSDK.RoomEvent;
+    RoomMemberEvent = matrixSDK.RoomMemberEvent;
+  }
+};
 
 type EventCallback = (...args: unknown[]) => void;
 
 class MatrixClientManager {
-  private client: MatrixClient | null = null;
+  private client: any = null;
   private eventListeners: Map<string, EventCallback[]> = new Map();
 
-  async initialize(authState: AuthState): Promise<MatrixClient> {
+  async initialize(authState: AuthState): Promise<any> {
     if (!authState.isAuthenticated || !authState.accessToken || !authState.homeserver) {
       throw new Error("Invalid authentication state");
     }
 
     try {
+      // Initialize Matrix SDK
+      await initializeMatrixSDK();
+
       // Create client with authentication
       this.client = createClient({
         baseUrl: authState.homeserver,
@@ -42,38 +60,41 @@ class MatrixClientManager {
     }
   }
 
-  private setupEventListeners() {
+  private async setupEventListeners() {
     if (!this.client) return;
 
+    // Ensure Matrix SDK is initialized
+    await initializeMatrixSDK();
+
     // Sync events
-    this.client.on(ClientEvent.Sync, (state, prevState, data) => {
+    this.client.on(ClientEvent.Sync, (state: any, prevState: any, data: any) => {
       this.emit("sync", { state, prevState, data });
     });
 
     // Room events
-    this.client.on(RoomEvent.Timeline, (event, room, toStartOfTimeline) => {
+    this.client.on(RoomEvent.Timeline, (event: any, room: any, toStartOfTimeline: any) => {
       this.emit("timeline", { event, room, toStartOfTimeline });
     });
 
-    this.client.on(RoomEvent.Receipt, (event, room) => {
+    this.client.on(RoomEvent.Receipt, (event: any, room: any) => {
       this.emit("receipt", { event, room });
     });
 
-    this.client.on(RoomEvent.MyMembership, (room, membership, prevMembership) => {
+    this.client.on(RoomEvent.MyMembership, (room: any, membership: any, prevMembership: any) => {
       this.emit("membership", { room, membership, prevMembership });
     });
 
     // Member events
-    this.client.on(RoomMemberEvent.Typing, (event, member) => {
+    this.client.on(RoomMemberEvent.Typing, (event: any, member: any) => {
       this.emit("typing", { event, member });
     });
 
-    this.client.on(RoomMemberEvent.PowerLevel, (event, member) => {
+    this.client.on(RoomMemberEvent.PowerLevel, (event: any, member: any) => {
       this.emit("powerLevel", { event, member });
     });
 
     // Error handling
-    this.client.on(ClientEvent.SyncUnexpectedError, (error) => {
+    this.client.on(ClientEvent.SyncUnexpectedError, (error: any) => {
       console.error("Sync error:", error);
       this.emit("error", { type: "sync", error });
     });
@@ -105,11 +126,11 @@ class MatrixClientManager {
   }
 
   // Matrix API methods
-  async sendMessage(roomId: string, content: IContent) {
+  async sendMessage(roomId: string, content: any) {
     if (!this.client) throw new Error("Client not initialized");
 
     try {
-      return await this.client.sendEvent(roomId, "m.room.message" as any, content);
+      return await this.client.sendEvent(roomId, "m.room.message", content);
     } catch (error) {
       console.error("Failed to send message:", error);
       throw new Error("Message sending failed");
@@ -138,7 +159,7 @@ class MatrixClientManager {
     }
   }
 
-  async createRoom(options: ICreateRoomOpts) {
+  async createRoom(options: any) {
     if (!this.client) throw new Error("Client not initialized");
 
     try {
@@ -149,7 +170,7 @@ class MatrixClientManager {
     }
   }
 
-  getClient(): MatrixClient | null {
+  getClient(): any {
     return this.client;
   }
 
